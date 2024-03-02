@@ -1,0 +1,41 @@
+/* List the name of all the mountains in the database. */
+Mountain{name}
+
+/* List the codes of the countries with more than 10.000 cases of COVID-19 in March 2021. */
+WITH(
+    C:= CountryCovid{country, total_cases, year, month} WHERE total_cases > 10000 AND year = 2021 AND month = 4
+): C{country}
+
+/* List all provinces in Europe whose area is less than 200. The results must be a relation composed of 2-tuples 
+ with attributes {province, country}, corresponding to the full province name and the full country name, respectively. */
+WITH(
+    E:= Encompasses{country, continent} WHERE continent = "Europe",
+    P:= E JOIN Province,
+    R:= P{name, area} WHERE area < 200.0
+): R{name}
+
+/* List all countries in Europe whose total number of deaths in December 2022 exceeded 10.000. The result must be a 
+relation composed of 3-tuples with attributes {country, population, total_deaths}, corresponding to the full country name, 
+its population, and its number of deaths respectively. */
+WITH(
+    E:= (Encompasses{country, continent} WHERE continent = "Europe"){country},
+    C:= (CountryCovid{country, total_deaths, year, month} WHERE year = 2022 AND month = 12 AND total_deaths > 10000){country, total_deaths},
+    P:= Country{code, population} RENAME { code AS country }
+): (E JOIN C JOIN P){country, population, total_deaths}
+
+/* For each country that has declared independence, give its full name and its independence date. */
+WITH(
+    C:= Country{code, name} RENAME { code AS country },
+    I:= Independence{country, independence}
+): (C JOIN I){name, independence}
+
+/* List country codes and full names of countries that share borders with both countries China and India. 
+ * The result relation is composed of 2-tuples with attributes {code, name}. */
+WITH(
+    BC:= (Borders{country1, country2} WHERE country2 = "TJ") RENAME { country1 AS code},
+    BI:= (Borders{country1, country2} WHERE country2 = "IND") RENAME { country1 AS code},
+    B:= BC UNION BI,
+    C:= Country{code, name}
+): (B JOIN C){code, name}
+
+
