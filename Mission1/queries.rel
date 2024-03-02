@@ -55,5 +55,20 @@ WITH(
 /* List the mountain ranges (as defined by the attribute mountains in Table Mountain) in which there is a mountain that stands on at least two countries. 
  * For example, Alps is a mountain range and it hosts the mountain Mont Blanc on the border of France and Italy. */ 
 WITH(
-    R:= SUMMARIZE GeoMountain{mountain, country} BY {mountain}: {mcount := COUNT()} WHERE mcount >= 2
-): R 
+    R:= (SUMMARIZE GeoMountain{mountain, country} BY {mountain}: {mcount := COUNT()} WHERE mcount >= 2){mountain}
+    M:= Mountain{name, mountains} RENAME {name, mountain}
+): ((R INTERSECT M{mountain}) JOIN M){mountains}
+
+/* List all names shared by a province and a country’s capital whose country had reached strictly more than 10000 Covid deaths at some point in time,
+ * as determined by attribute total_death in the CountryCovid table. Note that the total_death attribute stores the total number of deaths up till a certain moment in time. 
+ * The relationship is called name. */ 
+WITH(
+    N:= (Province{name, country, capital} WHERE name = capital){country, name},
+    C:= (CountryCovid{total_deaths, country} WHERE total_deaths > 10000){country}
+): (N JOIN C){name}
+
+/* List the full names of the countries that border the United States, as well as the countries that border those bordering countries. I.e.,
+ * the output should contain Mexico, but also Belize, which borders Mexico. The United States itself should not be part of the output. */
+WITH(
+    BUS:= Borders{country1, country2} WHERE country2 = "USA"
+) 
