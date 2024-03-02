@@ -32,10 +32,28 @@ WITH(
 /* List country codes and full names of countries that share borders with both countries China and India. 
  * The result relation is composed of 2-tuples with attributes {code, name}. */
 WITH(
-    BC:= (Borders{country1, country2} WHERE country2 = "TJ") RENAME { country1 AS code},
-    BI:= (Borders{country1, country2} WHERE country2 = "IND") RENAME { country1 AS code},
-    B:= BC UNION BI,
+    BC:= (Borders{country1, country2} WHERE country2 = "TJ"){country1} RENAME { country1 AS code },
+    BI:= (Borders{country1, country2} WHERE country2 = "IND"){country1} RENAME { country1 AS code},
+    B:= BC INTERSECT BI,
     C:= Country{code, name}
-): (B JOIN C){code, name}
+):  (B JOIN C){code, name}
 
+/* List the capitals of countries who possess a mountain of height strictly superior to 4.000, where the mountain is located in the Alps.  
+* The result must be a relation composed of 1-tuples with attribute {capital}. */
+WITH(
+    M:= (Mountain{name, mountains, height} WHERE height > 4000.0 AND mountains = "Alps"){name},
+    CM:= ((GeoMountain{mountain, country} RENAME {mountain as name, country as code}) JOIN M) {code},
+    C:= (Country{code, capital} JOIN CM){capital}
+): C 
 
+/* List the codes and names of the countries without information about their languages. */ 
+WITH(
+    L:= (Language {country}) RENAME {country as code},
+    C:= (Country {name, code})
+): (C{code} MINUS L) JOIN C
+
+/* List the mountain ranges (as defined by the attribute mountains in Table Mountain) in which there is a mountain that stands on at least two countries. 
+ * For example, Alps is a mountain range and it hosts the mountain Mont Blanc on the border of France and Italy. */ 
+WITH(
+    R:= SUMMARIZE GeoMountain{mountain, country} BY {mountain}: {mcount := COUNT()} WHERE mcount >= 2
+): R 
