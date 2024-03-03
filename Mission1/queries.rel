@@ -3,25 +3,29 @@ Mountain{name}
 
 /* List the codes of the countries with more than 10.000 cases of COVID-19 in March 2021. */
 WITH(
-    C:= CountryCovid{country, total_cases, year, month} WHERE total_cases > 10000 AND year = 2021 AND month = 4
+    C:= CountryCovid{country, total_cases, year, month} WHERE total_cases > 10000 AND year = 2021 AND month = 3
 ): C{country}
 
 /* List all provinces in Europe whose area is less than 200. The results must be a relation composed of 2-tuples 
  with attributes {province, country}, corresponding to the full province name and the full country name, respectively. */
 WITH(
-    E:= Encompasses{country, continent} WHERE continent = "Europe",
-    P:= E JOIN Province,
-    R:= P{name, area} WHERE area < 200.0
-): R{name}
+    E:= (Encompasses{country, continent} WHERE continent = "Europe"){country},
+    P:= (E JOIN Province{name,country,area}) RENAME {name AS province},
+    R:= (P{province, country, area} WHERE area < 200.0){country, province},
+    RR:= R RENAME {country AS code},
+    C:= Country{name, code} RENAME {name AS country} 
+): (RR JOIN C){province, country}
 
 /* List all countries in Europe whose total number of deaths in December 2022 exceeded 10.000. The result must be a 
 relation composed of 3-tuples with attributes {country, population, total_deaths}, corresponding to the full country name, 
 its population, and its number of deaths respectively. */
 WITH(
     E:= (Encompasses{country, continent} WHERE continent = "Europe"){country},
+    ER:= E{country} RENAME {country AS code},
     C:= (CountryCovid{country, total_deaths, year, month} WHERE year = 2022 AND month = 12 AND total_deaths > 10000){country, total_deaths},
-    P:= Country{code, population} RENAME { code AS country }
-): (E JOIN C JOIN P){country, population, total_deaths}
+    CR:= C{country, total_deaths} RENAME {country AS code},
+    P:= Country{code, population, name} RENAME {name AS country}
+): (ER JOIN CR JOIN P){country, population, total_deaths}
 
 /* For each country that has declared independence, give its full name and its independence date. */
 WITH(
@@ -55,17 +59,19 @@ WITH(
 /* List the mountain ranges (as defined by the attribute mountains in Table Mountain) in which there is a mountain that stands on at least two countries. 
  * For example, Alps is a mountain range and it hosts the mountain Mont Blanc on the border of France and Italy. */ 
 WITH(
-    R:= (SUMMARIZE GeoMountain{mountain, country} BY {mountain}: {mcount := COUNT()} WHERE mcount >= 2){mountain}
-    M:= Mountain{name, mountains} RENAME {name, mountain}
+    R:= (SUMMARIZE GeoMountain{mountain, country} BY {mountain}: {mcount := COUNT()} WHERE mcount >= 2){mountain},
+    M:= Mountain{name, mountains} RENAME {name AS mountain}
 ): ((R INTERSECT M{mountain}) JOIN M){mountains}
 
 /* List all names shared by a province and a country’s capital whose country had reached strictly more than 10000 Covid deaths at some point in time,
  * as determined by attribute total_death in the CountryCovid table. Note that the total_death attribute stores the total number of deaths up till a certain moment in time. 
  * The relationship is called name. */ 
 WITH(
-    N:= (Province{name, country, capital} WHERE name = capital){country, name},
-    C:= (CountryCovid{total_deaths, country} WHERE total_deaths > 10000){country}
-): (N JOIN C){name}
+    N:= (Province{name, country, capital}){country, name},
+    CV:= (CountryCovid{total_deaths, country} WHERE total_deaths > 10000){country, total_deaths},
+    C:= Country{code, capital} RENAME {code AS country},
+    R:= (C JOIN CV{country} JOIN N){name, capital}
+):  (R WHERE capital = name){name}
 
 /* List the full names of the countries that border the United States, as well as the countries that border those bordering countries. I.e.,
  * the output should contain Mexico, but also Belize, which borders Mexico. The United States itself should not be part of the output. */
