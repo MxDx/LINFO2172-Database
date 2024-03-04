@@ -76,5 +76,53 @@ WITH(
 /* List the full names of the countries that border the United States, as well as the countries that border those bordering countries. I.e.,
  * the output should contain Mexico, but also Belize, which borders Mexico. The United States itself should not be part of the output. */
 WITH(
-    BUS:= Borders{country1, country2} WHERE country2 = "USA"
-) 
+    B:= Borders{country1, country2},
+    BUSA:= (B WHERE country2 = "USA"),
+    BNOUSA:= (B MINUS BUSA),
+    BB:= (BUSA{country1} JOIN BNOUSA){country2} RENAME {country2 AS country1},
+    R:= (BB UNION BUSA{country1})RENAME {country1 AS code},
+    C:= Country{code, name}
+): (R JOIN C){name}
+
+/* Count the number of different countries whose Covid information was collected. The result must be a relation composed of 1-tuples with attribute {cnt}. */ 
+WITH(
+    C:= (CountryCovid{country}){country},
+    R:= SUMMARIZE C BY {}: {cnt := COUNT()}
+): R
+
+/* List the name of all countries which have zero Covid cases until 12/2021 (included) and their neighboring countries. The result must be a relation composed of tuples of 2 attributes {country1, country2}
+ * where the country1 is the zero-Covid country and country2 is its neighboring country. Note that also if no information is present in the database for a country, 
+ * this country and its neighbors should be included in the output relation. */
+WITH(
+    CV:= CountryCovid{country, total_cases, year, month},
+	CF:= CV WHERE total_cases = 0 AND year <= 2021 AND month <= 12,
+	C:= Country{code, name} RENAME {code AS country},
+	CM:= C{country} MINUS CV{country},
+	R:= (CF JOIN CM) RENAME {country AS country1},
+    B:= Borders{country1, country2}
+): (C JOIN B){country1, country2}
+
+/* List the most prominent language(s) for each country; i.e., list for each country those languages for which the percentage is maximal. 
+ * You are not allowed to use SUMMARIZE. The result must be a relation composed of 2-tuples with attributes {country, name}, 
+ * where country is the code of the country and name is the name of the language. */
+WITH(
+    L:= Language{country, name, percentage},
+    R:= (L JOIN (SELECT Language{country, MAX(percentage) AS percentage} GROUP BY {country}){country, percentage}){country, name}
+): R
+
+/* In the given database the Borders relation is symmetric":" if the country 1 (c1) borders country 2 (c2), country 2 also borders country 1. 
+ * One may wish to check this property on a given database. Write a query that determines all tuples {c1, c2}, 
+ * where c1 and c2 are the codes of the countries, for which the inverse direction is missing. 
+ * (Note":" on the given database, the output of this query should be empty; on a database in which the Border relation is not symmetric, 
+ * however, it should return the violating tuples. Create a database yourself to check this.) */
+WITH(
+    INSERT Test RELATION { TUPLE { country1 'AL', country2 'GR'} };
+    INSERT Test RELATION { TUPLE { country1 'GR', country2 'AL'} };
+    INSERT Test RELATION { TUPLE { country1 'AL', country2 'MK'} };
+): 
+
+WITH(
+    B:= Borders{country1, country2},
+    BINV:= (B{country2, country1} RENAME {country1 AS country2, country2 AS country1}){country1, country2},
+    R:= (B MINUS BINV){country1, country2}
+): R
