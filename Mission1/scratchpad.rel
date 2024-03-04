@@ -1,0 +1,5 @@
+WITH(
+E:= (Encompasses{country, continent} WHERE continent = "Europe"){country},
+C:= (CountryCovid{country, total_deaths, year, month} WHERE year = 2022 AND month = 12 AND total_deaths > 10000){country, total_deaths},
+P:= Country{code, population} RENAME { code AS country }
+): (E JOIN C JOIN P){country, population, total_deaths}

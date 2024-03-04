@@ -111,9 +111,19 @@ WITH(
  * You are not allowed to use SUMMARIZE. The result must be a relation composed of 2-tuples with attributes {country, name}, 
  * where country is the code of the country and name is the name of the language. */
 WITH(
+    L:= Language{country, name, percentage} GROUP {name, percentage} AS test,
+    P:= EXTEND L: {mx:= max(test,percentage)},
+    N:= EXTEND P:{name:= name  FROM TUPLE FROM (test WHERE percentage = mx)}
+): N{country, name}
+
+WITH(
     L:= Language{country, name, percentage},
-    R:= (L JOIN (SELECT Language{country, MAX(percentage) AS percentage} GROUP BY {country}){country, percentage}){country, name}
-): R
+    L1:= EXTEND L: {percentage1 := percentage},
+    L2:= EXTEND L: {percentage2 := percentage},
+    R:= (L JOIN L1{country, percentage1}),
+    RR:= (R WHERE percentage < percentage1){country,name},
+    RM:= R{country, name} MINUS RR
+): RM 
 
 /* In the given database the Borders relation is symmetric":" if the country 1 (c1) borders country 2 (c2), country 2 also borders country 1. 
  * One may wish to check this property on a given database. Write a query that determines all tuples {c1, c2}, 
