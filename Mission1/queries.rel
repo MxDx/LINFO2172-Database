@@ -95,10 +95,12 @@ WITH(
  * this country and its neighbors should be included in the output relation. */
 WITH(
     CV:= CountryCovid{country, total_cases, year, month},
-    CF:= CV WHERE total_cases = 0 AND year <= 2021 AND month <= 12,
+    CF:= CV WHERE year <= 2021 AND month <= 12,
+    CFW:= CF{country, total_cases} WHERE  total_cases > 0,
+	CFF:= CF{country} MINUS  CFW{country},
     C:= Country{code, name} RENAME {code AS country},
     CM:= C{country} MINUS CV{country},
-    R:= (CF{country} UNION CM{country}) RENAME {country AS country1},
+    R:= (CFF{country} UNION CM{country}) RENAME {country AS country1},
     B:= Borders{country1, country2},
     J:= (R JOIN B){country1, country2},
     C1:= C{name, country} RENAME {country AS country1},
