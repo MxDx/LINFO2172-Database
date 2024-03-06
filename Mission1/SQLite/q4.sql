@@ -25,3 +25,12 @@ LEFT JOIN Borders b ON b.country1 = cv.country
 LEFT JOIN Country c2 ON b.country2 = c2.code
 GROUP BY c1.name, c2.name
 HAVING SUM(cv.total_cases) = 0;
+
+/* Modified */ 
+SELECT DISTINCT c1.name AS country1, c2.name AS country2
+FROM Country c1
+LEFT JOIN CountryCovid cv 
+ON c1.code = cv.country
+LEFT JOIN Borders b ON b.country1 = c1.code
+JOIN Country c2 ON b.country2 = c2.code
+WHERE cv.total_cases IS NULL OR cv.year=2021 AND cv.month=12 AND cv.total_deaths=0;
