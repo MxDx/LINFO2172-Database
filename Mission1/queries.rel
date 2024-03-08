@@ -102,12 +102,26 @@ WITH(
     CM:= C{country} MINUS CV{country},
     R:= (CFF{country} UNION CM{country}) RENAME {country AS country1},
     B:= Borders{country1, country2},
-    J:= (R JOIN B){country1, country2},
+    J:= (R LEFT JOIN B){country1, country2},
+    C1:= C{name, country} RENAME {country AS country1},
+    C2:= C{name, country} RENAME {country AS country2},
+    J1:= (J LEFT JOIN C1){name, country2} RENAME {name AS country1},
+    J2:= (J1 LEFT JOIN C2){name, country1} RENAME {name AS country2}
+): J2{country1, country2} 
+
+WITH(
+    CV:= CountryCovid{country, total_cases, year, month},
+    CFF:= CV WHERE year = 2021 AND month = 12 AND total_cases = 0,
+    C:= Country{code, name} RENAME {code AS country},
+    CM:= C{country} MINUS CV{country},
+    R:= (CFF{country} UNION CM{country}) RENAME {country AS country1},
+    B:= Borders{country1, country2},
+    J:= (B JOIN R){country1, country2},
     C1:= C{name, country} RENAME {country AS country1},
     C2:= C{name, country} RENAME {country AS country2},
     J1:= (J JOIN C1){name, country2} RENAME {name AS country1},
     J2:= (J1 JOIN C2){name, country1} RENAME {name AS country2}
-): J2{country1, country2} 
+): J2{country1, country2}
 
 /* List the most prominent language(s) for each country; i.e., list for each country those languages for which the percentage is maximal. 
  * You are not allowed to use SUMMARIZE. The result must be a relation composed of 2-tuples with attributes {country, name}, 

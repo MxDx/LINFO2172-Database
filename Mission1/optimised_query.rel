@@ -1,0 +1,148 @@
+/* For each continent, count the number of independent countries and count the number of Covid 
+ * cases in the year of 2021 (data for the month of December is not always present). 
+ * The result must be a relation composed of 3 attributes {continent, countries, covid_cases}. */
+
+WITH(
+   CV:= CountryCovid{country, total_cases, year} WHERE year = 2021,
+   CVG:= CV{country, total_cases} GROUP {total_cases} AS per_country,
+   CVM:= EXTEND CVG:{covid_case:= MAX(per_country, total_cases)},
+   CVF:= CVM{country, covid_case} WHERE covid_case > 0,
+   I:= Independence{country},
+   E:= Encompasses{country, continent},
+
+   J:= I JOIN E,
+   JE:= EXTEND J:{uno:=1},
+   G:= JE GROUP {country, uno} AS grouped,
+   R:= EXTEND G:{countries:= SUM(grouped, uno)},
+
+   EM1:= E{continent} MINUS R{continent},
+   EE1:= EXTEND EM1:{countries:= 0},
+   RR:= R{countries, continent} UNION EE1,
+
+   J2:= CVF{country, covid_case} JOIN E,
+   G2:= J2 GROUP {country, covid_case} AS grouped,
+   R2:= EXTEND G2:{covid_cases:= SUM(grouped, covid_case)},
+
+   EM2:= E{continent} MINUS R2{continent},
+   EE2:= EXTEND EM2:{covid_cases:= 0},
+   RR2:= R2{continent, covid_cases} UNION EE2
+
+): RR{countries, continent} JOIN RR2{continent, covid_cases}
+
+
+WITH(
+   CV:= CountryCovid{country, total_cases, year} WHERE year = 2021,
+   CVG:= CV{country, total_cases} GROUP {total_cases} AS per_country,
+   CVM:= EXTEND CVG:{covid_case:= MAX(per_country, total_cases)},
+   CVF:= CVM{country, covid_case} WHERE covid_case > 0,
+   I:= Independence{country},
+   E:= Encompasses{country, continent},
+
+   J:= CVF{country, covid_case} JOIN I JOIN E,
+   S:= SUMMARIZE J BY {continent}:
+        {covid_cases:=SUM(covid_case), countries:= COUNT()}
+): S{covid_cases, countries, continent}
+
+
+/* List all mountains that are on a border. The result must be a relation composed by a 
+ * 3-tuple attributes {mountain, country1, country2} where country1 and country2 are the names 
+ * of the countries for which a frontier exist and mountain is the mountain located in the frontier. 
+ * Only show one tuple per mountain, with country1 before country2 in alphabetical order. */
+WITH(
+    M:= GeoMountain{mountain, country} RENAME {country AS country1},
+    MI:= (M RENAME {country1 AS country2}),
+    MJ:= (M JOIN MI) WHERE NOT (country1 = country2),
+    MJF:= MJ WHERE country1 < country2,
+    C1:= Country{code, name} RENAME {code AS country1},
+    C2:= Country{code, name} RENAME {code AS country2},
+    J1:= (MJF JOIN C1){name, mountain, country2} RENAME {name AS country1},
+    J2:= (J1 JOIN C2){name, mountain, country1} RENAME {name AS country2}
+): J2{mountain, country1, country2}
+
+
+/* List all Asian countries with a larger population than 200.000.000 inhabitants, 
+ * whose increase in total Covid cases is higher in 2021 than in 2022; here the increase in 
+ * total cases of a year is defined as total cases in December minus total cases in December of the preceding year. 
+ * The result must be a relation with one attribute country, where country is the full name of the country. */
+WITH(
+    C:= Country{code, name, population} WHERE population > 200000000,
+    E:= Encompasses{country, continent} WHERE continent = 'Asia',
+    CR:= C{code, name} RENAME {code AS country},
+
+    CV20:= CountryCovid{country, year, total_cases, month} WHERE month = 12 AND year = 2020,
+    CV21:= CountryCovid{country, year, total_cases, month} WHERE month = 12 AND year = 2021,
+    CV22:= CountryCovid{country, year, total_cases, month} WHERE month = 12 AND year = 2022,
+
+    CV20R:= CV20 RENAME {total_cases AS total_cases20},
+    CV21R:= CV21 RENAME {total_cases AS total_cases21},
+    CV22R:= CV22 RENAME {total_cases AS total_cases22},
+
+    J1:= CR JOIN E,
+    J2:= J1 JOIN CV20R{country, total_cases20} JOIN CV21R{country, total_cases21} JOIN CV22R{country, total_cases22},
+
+    F:= J2 WHERE total_cases21-total_cases20 > total_cases22-total_cases21
+): F{name} RENAME {name AS country}
+
+
+/* For all countries that have a bordering country with a province with an area of less than 5000.0, 
+ * list the languages; provide the country code and the language name. The result must be a relation 
+ * composed of a 2-tuple with attributes {country, language} where country is the code of the country and language is the name of the language. */
+WITH(
+    P:= Province{area, country} WHERE area < 5000.0,
+    L:= Language{country, name} RENAME {name AS language},
+    B:= Borders{country1, country2} RENAME {country1 AS country},
+
+    J:= (P JOIN B){country2} RENAME {country2 AS country},
+    JJ:= J JOIN L
+): JJ
+
+
+/* Luxembourg is in a specific topographic situation: it has exactly three neighboring countries (Belgium, Germany, and France),
+ * each of which are pairwise neighbors of each other as well. As a result, Luxembourg is surrounded by exactly three countries. 
+ * List the abbreviations of all countries that are in a similar situation as Luxembourg. 
+ * The result must be a relation composed by a 1-tuple attribute {country} where country is the code of the country. */
+WITH(
+    B:= Borders{country1, country2},
+    G:= SUMMARIZE B BY {country1}:
+        {cnt:= COUNT()},
+    GF:= (G WHERE cnt = 3){country1} JOIN B,
+    CR:= GF RENAME {country1 AS country},
+    C2:= (CR JOIN B) RENAME {country2 AS ct1},
+    C3:= (C2 JOIN B) WHERE country2 = country,
+    C3R:= C3 RENAME {country1 AS ct2},
+    C4:= (C3R JOIN B) WHERE NOT (country1 = ct1) AND NOT(country1 = ct2) 
+): C4{country}
+
+WITH(
+    B:= Borders{country1, country2},
+    G:= SUMMARIZE B BY {country1}:
+        {cnt:= COUNT()},
+    GF:= (G WHERE cnt = 3){country1} JOIN B,
+    CR:= GF RENAME {country1 AS country},
+    C1:= (CR JOIN B) RENAME {country2 as ct1},
+	C2:= (C1 JOIN B) WHERE country2 = country,
+	
+	E:= EXTEND C2:{uno:=1},
+	GG:= E GROUP {country2, ct1, country1} AS grouped,
+	R:= EXTEND GG:{cnt:= SUM(grouped, uno)},
+	RR:= R WHERE cnt =  6
+): RR{country}
+
+
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah
+WITH(
+    CV:= CountryCovid{year, month, total_cases, country} WHERE year = 2022 AND month = 12,
+    C:= Country{code, population} RENAME {code AS country},
+    B:= Borders{country1, country2},
+
+    J:= (CV{country, total_cases} JOIN C),
+    RATIO:= EXTEND J:{ratio:= (total_cases*100000)/population},
+    
+    R1:= RATIO{ratio, country} RENAME {country AS country1, ratio AS r1},
+    R2:= RATIO{ratio, country} RENAME {country AS country2, ratio AS r2},
+
+    NB:= B JOIN R1 JOIN R2,
+
+	POPO:= NB WHERE r1 < r2,
+	NOTPOPO:= B{country1} MINUS POPO{country1}
+): NOTPOPO RENAME {country1 AS country}
