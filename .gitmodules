@@ -1,0 +1,3 @@
+[submodule "Mission2/Mission2/databases"]
+	path = Mission2/databases
+	url = git@github.com:Sarinco/databases.git
