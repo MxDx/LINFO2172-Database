@@ -1,6 +1,6 @@
 [submodule "Mission2/databases"]
 	path = Mission2/databases
     url = git@github.com:Sarinco/databases.git
-[submodule "Mission3"]
-    path = Mission3
-    url = git@github.com:GigaUltimatumXVI/LINFO2172-Database-Project3.git
+[submodule "LINFO2172-Database-Project3"]
+	path = LINFO2172-Database-Project3
+	url = git@github.com:GigaUltimatumXVI/LINFO2172-Database-Project3.git
