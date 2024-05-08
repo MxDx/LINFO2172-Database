@@ -6,4 +6,4 @@ MATCH (:Continent {name: 'Europe'})-[:Encompasses]->(c:Country)
 MATCH (c)-[:Borders]->()
 WITH c, count(c) AS degree
 ORDER BY degree DESC
-RETURN c.name, degree
+RETURN c.name, degree;

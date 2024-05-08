@@ -15,4 +15,4 @@ MATCH
 (c2)-[:Borders]->(c3)
 WHERE c1.name <> c2.name AND c1.name <> c3.name AND c2.name <> c3.name
 WITH center
-RETURN DISTINCT center.name
+RETURN DISTINCT center.name;

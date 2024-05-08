@@ -5,4 +5,4 @@ MATCH (c:Country)-[:Borders]->()
 WITH c, count(c) AS degree
 ORDER BY degree DESC
 RETURN c.name, degree
-LIMIT 1
+LIMIT 1;

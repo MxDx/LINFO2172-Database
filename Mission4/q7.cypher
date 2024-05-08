@@ -4,4 +4,4 @@ nodes and edges on this path, starting from Belgium and ending in China.
 MATCH s=shortestPath(
     (b:Country {name: 'Belgium'})-[:Borders*]->(c:Country {name: 'China'})
 )
-RETURN s
+RETURN s;

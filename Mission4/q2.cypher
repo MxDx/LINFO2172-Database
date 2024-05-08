@@ -7,5 +7,5 @@ MATCH
 (c2:Country)-[:Borders]->(china),
 (c1)-[:Borders]->(c2)
 WHERE c1.name < c2.name
-RETURN c1.name, c2.name
+RETURN c1.name, c2.name;
 

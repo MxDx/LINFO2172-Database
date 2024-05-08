@@ -5,4 +5,4 @@ MATCH (:Continent {name: 'Asia'})-[:Encompasses]->(a:Country),
 (e:Continent {name: 'Europe'})-[:Encompasses]->(euPath:Country)-[:Borders*1..3]->(a),
 (e)-[:Encompasses]->(rep:Country)
 WHERE rep.name <> euPath.name
-RETURN rep.name
+RETURN rep.name;

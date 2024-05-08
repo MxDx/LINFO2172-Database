@@ -8,4 +8,4 @@ WHERE b.name <> c.name
 WITH c, length(s) AS size
 ORDER BY size DESC
 RETURN c.name, size
-LIMIT 1
+LIMIT 1;

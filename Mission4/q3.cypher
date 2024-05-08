@@ -6,4 +6,4 @@ WITH collect(inEU) as euCountries
 MATCH (outEU:Country),
 (europe:Continent {name: 'Europe'})-[:Encompasses {percentage: '100.0'}]->(inEU:Country)-[:Borders]->(outEU)
 WHERE NOT outEU IN euCountries
-RETURN DISTINCT inEU.name
+RETURN DISTINCT inEU.name;
